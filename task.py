@@ -1,3 +1,22 @@
+"""
+Эта программа на Pygame визуализирует поиск пути в лабиринте.
+
+Интерфейс: окно показывает лабиринт; стены и поля отмечены синим, поиск алгоритма – розовым, кратчайший путь – жёлтым/фиолетовым.
+
+Параметры: размеры лабиринта можно менять с помощью изменения (WIDTH, HEIGHT) и ячеек (CELL_SIZE).
+
+Алгоритмы: реализованы BFS, DFS, A* с Манхэттенской и Евклидовой эвристикой.
+
+Управление:
+
+1–4 — выбор алгоритма,
+
+SPACE — новый лабиринт,
+
+S — запуск поиска,
+
+ESC — выход.
+"""
 import pygame 
 import random
 import time
@@ -9,7 +28,7 @@ import heapq
 pygame.init()
 
 # Настройки лабиринта
-WIDTH, HEIGHT = 1000, 700
+WIDTH, HEIGHT = 800, 600
 CELL_SIZE = 40
 ROWS = HEIGHT // CELL_SIZE
 COLS = WIDTH // CELL_SIZE
@@ -29,7 +48,7 @@ EXPLORE_COLOR = (255, 200, 200)
 
 # Создание окна
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Автоматическое решение лабиринта - A*")
+pygame.display.set_caption("Поиск пути в лабиринте с алгоритмами BSF,DFS,A*")
 clock = pygame.time.Clock()
 
 class Cell:
@@ -209,7 +228,9 @@ def find_path_dfs_iterative(grid, start, end):
                 current = visited[current]
             return path[::-1]  # Разворачиваем путь
         
+        # Получаем соседей в случайном порядке для разнообразия
         neighbors = current.get_neighbors(grid)
+        random.shuffle(neighbors)
         
         for neighbor in neighbors:
             if not neighbor.visited:
@@ -233,8 +254,7 @@ def find_path_astar(grid, start, end, heuristic_func=heuristic):
     start.f_score = heuristic_func(start, end)
     
     # Открытый список (приоритетная очередь)
-    open
-    _set = []
+    open_set = []
     heapq.heappush(open_set, (start.f_score, id(start), start))
     open_set_dict = {start: True}
     
@@ -308,6 +328,7 @@ def dfs_iterative_generator(grid, start, end):
             break
         
         neighbors = current.get_neighbors(grid)
+        random.shuffle(neighbors)
         
         for neighbor in neighbors:
             if not neighbor.visited:
@@ -477,7 +498,7 @@ def draw_maze(grid, path=None, current_cell=None, exploring=False, algorithm_nam
     
     # Отображаем информацию об алгоритме
     font = pygame.font.SysFont(None, 20)
-    text = font.render(f"Алгоритм: {algorithm_name}", True, BLACK)
+    text = font.render(f"Выбор алгоритма: {algorithm_name}", True, BLACK)
     screen.blit(text, (10, HEIGHT - 110))
     
     # Инструкции
@@ -492,18 +513,18 @@ def draw_maze(grid, path=None, current_cell=None, exploring=False, algorithm_nam
         screen.blit(t, (10, HEIGHT - 80 + i * 22))
     
     # Отображаем замеры времени, если есть
-    small_font = pygame.font.SysFont(None, 20)
+    small_font = pygame.font.SysFont(None, 18)
     y0 = HEIGHT - 180
     if gen_time is not None:
         t = small_font.render(f"Генерация лабиринта: {gen_time*1000:.2f} ms", True, BLACK)
         screen.blit(t, (WIDTH - 320, y0))
         y0 += 20
     if explore_time is not None:
-        t = small_font.render(f"Этап исследования (анимация): {explore_time*1000:.2f} ms", True, BLACK)
+        t = small_font.render(f"Поиск пути алгоритма в лабиринте: {explore_time*1000:.2f} ms", True, BLACK)
         screen.blit(t, (WIDTH - 320, y0))
         y0 += 20
     if solve_time is not None:
-        t = small_font.render(f"Восстановление пути (решение): {solve_time*1000:.2f} ms", True, BLACK)
+        t = small_font.render(f"Кратчайший путь в лабиринте: {solve_time*1000:.2f} ms", True, BLACK)
         screen.blit(t, (WIDTH - 320, y0))
         y0 += 20
     
@@ -520,7 +541,7 @@ def main():
     grid = generate_maze()
     t1 = time.perf_counter()
     gen_time = t1 - t0
-    print(f"[TIMING] Генерация лабиринта: {gen_time*1000:.2f} ms")
+    print(f"Генерация лабиринта: {gen_time*1000:.2f} ms")
     
     start = grid[0][0]
     end = grid[ROWS-1][COLS-1]
@@ -532,6 +553,7 @@ def main():
     algorithm_names = {
         "bfs": "BFS (поиск в ширину)",
         "dfs_iterative": "DFS итеративный",
+        "dfs_recursive": "DFS рекурсивный",
         "astar_manhattan": "A* (Манхэттенское расстояние)",
         "astar_euclidean": "A* (Евклидово расстояние)"
     }
@@ -547,7 +569,7 @@ def main():
                     grid = generate_maze()
                     t1 = time.perf_counter()
                     gen_time = t1 - t0
-                    print(f"[TIMING] Генерация лабиринта: {gen_time*1000:.2f} ms")
+                    print(f"Генерация лабиринта: {gen_time*1000:.2f} ms")
                     
                     start = grid[0][0]
                     end = grid[ROWS-1][COLS-1]
@@ -555,23 +577,23 @@ def main():
                     show_solution = False
                 
                 elif event.key == pygame.K_s:
-                    # Показываем процесс и решение
+                    # Показываем процесс поиска пути алгоритма и кратчайший путь в лабиринте
                     if not show_solution:
-                        # Анимируем процесс исследования (с замером времени)
+                        # Процесс поиска пути алгоритма в лабиринте (с замером времени)
                         explorer = get_algorithm_generator(grid, start, end, current_algorithm)
                         t0 = time.perf_counter()
                         ok = animate_exploration(grid, explorer)
                         t1 = time.perf_counter()
                         explore_time = t1 - t0
-                        print(f"[TIMING] Этап исследования (анимация): {explore_time*1000:.2f} ms")
+                        print(f"Поиск пути алгоритма в лабиринте: {explore_time*1000:.2f} ms")
                         
                         if ok:
-                            # Находим и показываем путь (замер только на восстановление/поиск полного пути)
+                            # Находим и показываем кратчайший путь в лабиринте(замер только на восстановление/поиск полного пути)
                             t0 = time.perf_counter()
                             path = find_path_with_algorithm(grid, start, end, current_algorithm)
                             t1 = time.perf_counter()
                             solve_time = t1 - t0
-                            print(f"[TIMING] Восстановление пути (решение): {solve_time*1000:.2f} ms")
+                            print(f"Кратчайший путь в лабиринте : {solve_time*1000:.2f} ms")
                             
                             if path:
                                 show_solution = animate_solution(grid, path)
